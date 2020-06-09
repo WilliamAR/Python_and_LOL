@@ -113,9 +113,15 @@ class OrganizarBase(object):
             DataFrame con algunas correcciones en la información.
         '''
         
-        lol_gold= lol_gold.set_index(['Address','Type']).stack().\
+        lol_gold = lol_gold.set_index(['Address','Type']).stack().\
             unstack(level = 'Type').reset_index().rename(
                 columns = {'level_1':'Time_gold'})
+            
+        lol_gold.Time_gold = lol_gold.Time_gold.\
+            str.replace(r'(min_)(.*)',r'\2').astype(int)
+        
+        lol_gold = lol_gold.drop(labels = ['goldblue', 'goldred', 'golddiff'],
+                                 axis = 1)
                 
         return lol_gold
     
@@ -136,6 +142,7 @@ class OrganizarBase(object):
                             'Time':'Time_kill', 
                             'level_5': 'Type_kill',
                             0: 'Player'})
+            
         lol_kills.loc[~lol_kills.x_pos.str.isdigit(), 'x_pos'] = '0'
         lol_kills.loc[~lol_kills.y_pos.str.isdigit(), 'y_pos'] = '0'
         
