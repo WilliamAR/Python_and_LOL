@@ -1,8 +1,8 @@
 import matplotlib.pyplot as plt
+from matplotlib.patches import Polygon
 import numpy as np
 import pandas as pd
-import seaborn as sns
-from re import sub, match
+from re import sub
 
 class GraficaGeneral(object):
     
@@ -30,8 +30,6 @@ class GraficaGeneral(object):
     def paleta_invertida(self, color):
         
         '''
-        paleta_invertida(color)
-        
         Parámetros:
             color: Objeto tipo cmap de Matplotlib.
 
@@ -45,8 +43,6 @@ class GraficaGeneral(object):
     def etiqueta(self, columna):
         
         '''
-        etiquetas(columna)
-        
         Lee una tupla de múltiples niveles de columna y lo retorna en un solo 
         string.
         
@@ -65,12 +61,10 @@ class GraficaGeneral(object):
         
         return tipo_baneo
     
-    def nombres(self, base_lol, lon_nombres = 10, columna = 'Campo columna'):
+    def nombres(self, base_lol, columna, lon_nombres = 10):
         #Ver a que se debe que debo crear un valor en la variable "columna"
         
         '''
-        nombres(base_lol, lon_nombres = 10, columna = 'Campo columna')
-        
         Lee un DataFrame de LOL y retorna los nombres más frecuentes bajo 
         algún filtro del DataFrame.
         
@@ -80,12 +74,12 @@ class GraficaGeneral(object):
             la columna "Player" y sea posible detectar una frecuencia dentro 
             del DataFrame.
             
+            columna: str, Columna que contiene la frecuencia de los nombres o 
+            campeones, según sea el caso.
+            
             len_nombres: int, Cantidad de nombres que va a retornar la lista 
             del DataFrame, si la longitud de nombres supera al DataFrame, 
             retornar todos los nombres del DataFrame.
-            
-            columna: str, Columna que contiene la frecuencia de los nombres o 
-            campeones, según sea el caso.
             
         Return:
             Lista de los nombres relevantes en la columna "Champion_ban" o
@@ -113,8 +107,6 @@ class GraficaGeneral(object):
               drop_level_0 = True):
         
         '''
-        top_n(base_lol, nombres, filtro, drop_level_0 = True)
-        
         Lee una DataFrame y lo retorna los nombres más frecuentes bajo el 
         filtro del DataFrame.
         
@@ -171,10 +163,6 @@ class GraficaGeneral(object):
                              etiqueta_barra = True):
         
         '''
-        grafico_barras_top_n(top_n, nombres, titulo = 'League of Legends', 
-        etiqueta_x = 'x', etiqueta_y = 'Frequency', gama_paleta = 'degrade10',
-        degrade = True, etiqueta_barra = True)
-        
         Toma el DataFrame y retorna un gráfico de barras según los filtros
         aplicados a top_n y los campeones o jugadores nombrados.
         
@@ -195,7 +183,8 @@ class GraficaGeneral(object):
             anexadas para utilizar en las gráficas, pero, tener en cuenta que
             algunas paletas no cubren todo el tamaño de las gráficas, si el 
             número barras es superior a la cantidad de colores en la paleta
-            entrega un error, por defecto 'degrade10', las paletas son:
+            se repetira el número de colores para completar todas la columnas, 
+            por defecto 'degrade10', las paletas son:
                 * team: 2 colores, para un gráfico diferenciado por equipo.
                 
                 * baneo: 5 colores, para un gráfico diferenciado por baneo o
@@ -225,7 +214,7 @@ class GraficaGeneral(object):
         '''
             
         #AJUSTE DEL MÉTODO
-        maximo = top_n.values.max()
+        maximo = top_n.values.max()*1.15
         width = 0.40
         lon_breaks = len(top_n.columns)
         x = np.arange(len(nombres))
@@ -235,8 +224,6 @@ class GraficaGeneral(object):
         def _etiqueta_encima_barra(rectas):
 
             '''
-            etiquetas(columna)
-            
             Lee las alturas y longitudes de los intervalos y retorna su valor 
             encima de la barra.
             
@@ -262,6 +249,14 @@ class GraficaGeneral(object):
         
         fig, ax = plt.subplots()
         
+        num_bars = len(top_n.columns)
+        num_colores = len(self._paleta[gama_paleta])
+        if num_bars < num_colores:
+            bar_colors = self._paleta[gama_paleta]
+        else:
+            bar_colors = self._paleta[gama_paleta]*(num_bars//num_colores + 1)
+        
+        
         for n, columna in enumerate(top_n.columns):
             
             grafica_baneo = ax.bar(
@@ -269,8 +264,8 @@ class GraficaGeneral(object):
                 height= top_n[columna],
                 width = 2*width/lon_breaks,
                 color = np.where(degrade == True,
-                                 self._paleta[gama_paleta],
-                                 self._paleta[gama_paleta][n]),
+                                 bar_colors,
+                                 bar_colors[n]),
                 label = tipo[n])
         
             if(etiqueta_barra == True):
@@ -282,14 +277,280 @@ class GraficaGeneral(object):
         ax.set_title(titulo)
         ax.set_xticks(x)
         ax.set_xticklabels(nombres)
-        if maximo > 1500:
-            ax.set_ylim(0, maximo + 300)
-        else:
-            ax.set_ylim(0, maximo + 100)
+        ax.set_ylim(0, maximo)
         
         if(lon_breaks > 1):
             ax.legend(loc='center left', bbox_to_anchor=(1, 0.5))
         
+        plt.setp(ax.get_xticklabels(), 
+                 rotation = 45, 
+                 ha="right",
+                 rotation_mode = "anchor")
+        fig.tight_layout()
+        plt.show()
+    
+    def _filtro(self, base_lol, columna_filtro, filtro):
+        
+        '''
+        Entrega la lista de filtros posibles por la unicidad de la columna
+        '''
+        
+        if filtro == None:
+            filtro = list(base_lol[columna_filtro].unique())
+            
+        return filtro
+    
+    def _base_lol_filtrados(self, base_lol, columna_filtro, columna_bp, filtro):
+        
+        '''
+        Entrega un lista por cada subconulta del filtro
+        '''
+        
+        base_lol_filtrados = []
+        for tipo_filtro in filtro:
+            base_lol_filtrados.append(
+                base_lol.loc[base_lol[columna_filtro] == tipo_filtro, 
+                             columna_bp])
+            
+        return base_lol_filtrados
+        
+        
+    
+    def grafico_cajas(self, base_lol, columna_filtro, columna_bp, filtro = None, 
+                      titulo = '', etiqueta_x = 'x', etiqueta_y = 'Valores',
+                      gama_paleta = 'aleatorio10'):
+        
+        '''
+        Toma el DataFrame y retorna un gráfico de cajas según los filtros
+        aplicados a top_n y los campeones o jugadores nombrados.
+        
+        Parámetros:
+            base_lol: DataFrame que contenga una columna numérica para ver
+            la dispersión de los puntos dentro del DataFrame.
+            
+            columna_filtro: str, Columna que se subdividen los grupos.
+            
+            columna_bp: str, Columna númerica.
+            
+            filtro: lista o None, Busca las categorías de los filtros dentro 
+            de la columnas, si es None, tomará todos los valores únicos del 
+            DataFrame.
+            
+            titulo: Título al gráfico grafico_cajas, por defecto ''.
+            
+            etiqueta_x: Nombre del eje x, por defecto 'x'.
+            
+            etiqueta_y: Nombre del eje y, por defecto 'Valores'.
+            
+            gama_paleta: str o list, para el caso str son algunas paletas 
+            anexadas para utilizar en las gráficas, pero, tener en cuenta que
+            algunas paletas no cubren todo el tamaño de las gráficas, si el 
+            número barras es superior a la cantidad de colores en la paleta
+            se repetira el número de colores para completar todas la columnas, 
+            por defecto 'degrade10', las paletas son:
+                * team: 2 colores, para un gráfico diferenciado por equipo.
+                
+                * baneo: 5 colores, para un gráfico diferenciado por baneo o
+                asistencias.
+                
+                * aleatorio10: 10 colores, para un gráfico de 10 barras en cada 
+                campeón.
+                
+                * degrade10: 10 colores, para un gráfico de 10 barras en cada
+                campeón.
+                
+            La lista tiene que ser permitidos entre los colores de Matplotlib y
+            contener la cantidad mínima de barras para cada campeón.
+            
+        Return:
+            Gráfico de cajas según los filtros especificados.
+        '''
+        
+        GG = GraficaGeneral()
+        filtro = GG._filtro(base_lol, columna_filtro, filtro)
+        
+        base_lol_filtrados = GG._base_lol_filtrados(
+            base_lol, columna_filtro, columna_bp, filtro)
+        
+        fig, ax1 = plt.subplots(figsize=(10, 6))
+        fig.canvas.set_window_title('A Boxplot Example')
+
+        bp = ax1.boxplot(base_lol_filtrados, notch=0, vert=1, whis=1.5,
+                         labels = filtro)
+        plt.setp(bp['boxes'], color='black')
+        plt.setp(bp['whiskers'], color='black')
+        plt.setp(bp['fliers'], color='white', marker='_')
+        
+        ax1.yaxis.grid(True, linestyle='-', which='major', color='lightgrey',
+               alpha=0.5)
+        
+        ax1.set_axisbelow(True)
+        ax1.set_title(titulo)
+        ax1.set_xlabel(etiqueta_x)
+        ax1.set_ylabel(etiqueta_y)
+        
+        
+        num_boxes = len(base_lol_filtrados)
+        num_colores = len(self._paleta[gama_paleta])
+        if num_boxes < num_colores:
+            box_colors = self._paleta[gama_paleta]
+        else:
+            box_colors = self._paleta[gama_paleta]*(num_boxes//num_colores + 1)
+        
+        medians = np.empty(num_boxes)
+        for i in range(num_boxes):
+            box = bp['boxes'][i]
+            boxX = []
+            boxY = []
+            for j in range(5):
+                boxX.append(box.get_xdata()[j])
+                boxY.append(box.get_ydata()[j])
+            box_coords = np.column_stack([boxX, boxY])
+
+            ax1.add_patch(Polygon(box_coords, facecolor=box_colors[i]))
+
+            med = bp['medians'][i]
+            medianX = []
+            medianY = []
+            for j in range(2):
+                medianX.append(med.get_xdata()[j])
+                medianY.append(med.get_ydata()[j])
+                ax1.plot(medianX, medianY, 'k')
+            medians[i] = medianY[0]
+
+            ax1.plot(np.average(med.get_xdata()), 
+                     np.average(base_lol_filtrados[i]),
+                     color='black', marker='s', markeredgecolor='k')
+            
+        ax1.set_xlim(0.5, num_boxes + 0.5)
+        top = base_lol[columna_bp].values.max() + 5
+        bottom = 0
+        ax1.set_ylim(bottom, top)
+        ax1.set_xticklabels(filtro,
+                            rotation=45, fontsize=12)
+        
+        pos = np.arange(num_boxes) + 1
+        upper_labels = [str(np.round(s, 2)) for s in medians]
+        for tick, label in zip(range(num_boxes), ax1.get_xticklabels()):
+            ax1.text(pos[tick], .95, upper_labels[tick],
+                     transform=ax1.get_xaxis_transform(),
+                     horizontalalignment='center', size='x-large', 
+                     color=box_colors[tick])
+        plt.show()
+        
+        
+    def grafico_barras_frecuencias(self, base_lol, columna_filtro,  
+                               filtro = None, titulo = '',
+                               etiqueta_x = 'x', etiqueta_y = 'y',
+                               gama_paleta = 'degrade10', 
+                               etiqueta_barra = True):
+        
+        '''
+        Toma el DataFrame y retorna un gráfico de cajas según los filtros
+        aplicados a top_n y los campeones o jugadores nombrados.
+        
+        Parámetros:
+            base_lol: DataFrame que contenga una columna numérica para ver
+            las frecuencias dentro del DataFrame.
+            
+            columna_filtro: str, Columna que se subdividen los grupos.
+            
+            filtro: lista o None, Busca las categorías de los filtros dentro 
+            de la columnas, si es None, tomará todos los valores únicos del 
+            DataFrame.
+            
+            titulo: Título al gráfico grafico_cajas, por defecto ''.
+            
+            etiqueta_x: Nombre del eje x, por defecto 'x'.
+            
+            etiqueta_y: Nombre del eje y, por defecto 'Valores'.
+            
+            gama_paleta: str o list, para el caso str son algunas paletas 
+            anexadas para utilizar en las gráficas, pero, tener en cuenta que
+            algunas paletas no cubren todo el tamaño de las gráficas, si el 
+            número barras es superior a la cantidad de colores en la paleta
+            se repetira el número de colores para completar todas la columnas, 
+            por defecto 'degrade10', las paletas son:
+                * team: 2 colores, para un gráfico diferenciado por equipo.
+                
+                * baneo: 5 colores, para un gráfico diferenciado por baneo o
+                asistencias.
+                
+                * aleatorio10: 10 colores, para un gráfico de 10 barras en cada 
+                campeón.
+                
+                * degrade10: 10 colores, para un gráfico de 10 barras en cada
+                campeón.
+                
+            La lista tiene que ser permitidos entre los colores de Matplotlib y
+            contener la cantidad mínima de barras para cada campeón.
+            
+        Return:
+            Gráfico de barras según los filtros especificados.
+        '''
+        
+        GG = GraficaGeneral()
+        filtro = GG._filtro(base_lol, columna_filtro, filtro)
+        
+        base_lol_filtrados = GG._base_lol_filtrados(
+            base_lol, columna_filtro, columna_filtro, filtro)
+        
+        #AJUSTE DEL MÉTODO
+        width = 0.40
+        x = np.arange(len(filtro))
+        num_bars = len(base_lol_filtrados)
+        colores = self._paleta[gama_paleta]
+        num_colores = len(colores)
+        if num_bars < num_colores:
+            bar_colors = colores
+        else:
+            bar_colors = colores*(num_bars//num_colores + 1)
+            
+        frec_monstruo = []
+        for tipo in base_lol_filtrados:
+            frec_monstruo.append(len(tipo))
+        maximo = max(frec_monstruo)*1.15
+        
+        def _etiqueta_encima_barra(rectas):
+
+            '''
+            Lee las alturas y longitudes de los intervalos y retorna su valor 
+            encima de la barra.
+            
+            Parámetros:
+                rectas: Objeto de tipo AxesSubplot que contenga los parámetros
+                de las barras en el barplot.
+                
+            Return:
+                Los textos encima de la barra. 
+            '''
+        
+            for recta in rectas:
+                height = recta.get_height()
+                ax.annotate('{}'.format(round(height,2)),
+                            xy=(recta.get_x() + recta.get_width() / 2, 
+                                height),
+                            xytext=(0, 1),
+                            textcoords="offset points",
+                            ha='center', va='bottom',
+                            fontsize = 8,
+                            color = '#333333')
+        
+        fig, ax = plt.subplots() 
+        grafica = ax.bar(x = x, height = frec_monstruo, width = width, 
+                color = bar_colors[:num_bars])
+        
+        if(etiqueta_barra):
+            _etiqueta_encima_barra(grafica)
+                    
+        ax.set_ylabel(etiqueta_y)
+        ax.set_ylim(0, maximo)
+        ax.set_xlabel(etiqueta_x)
+        ax.set_title(titulo)
+        ax.set_xticks(x)
+        ax.set_xticklabels(filtro)
+        ax.yaxis.grid(True, linestyle='-', which='major', color='lightgrey',
+               alpha=0.5)
         plt.setp(ax.get_xticklabels(), 
                  rotation = 45, 
                  ha="right",
@@ -304,15 +565,14 @@ class GraficaGeneralBaneo(GraficaGeneral):
     def __init__(self):
         
         '''
-        Crea la instancia de Gráfica para baneo sin ningún tipo de filtro.
+        Crea la instancia de Gráfica para la base de datos que contiene 
+        el baneo de los campeones antes de comenzar la partida.
         '''
         super().__init__()
     
     def mapa_calor_top_n(self, top_n, nombre_campeon, color_invertido = True):
         
         '''
-        mapa_calor_top_n(top_n, nombre_campeon, color_invertido = True)
-        
         Toma el DataFrame y retorna un gráfico de calor según los filtros
         aplicados a top_n y los campeones nombrados.
         
@@ -336,7 +596,6 @@ class GraficaGeneralBaneo(GraficaGeneral):
         GGB = GraficaGeneralBaneo()
         tipo_baneo = GGB.etiqueta(columna = top_n.columns)
         cuantil = np.quantile(cantidad, 0.75)
-        #color_matriz = np.where(cantidad < cuantil, 'white', 'black')
         
         if(len(nombre_campeon) > 10):
             tamaño_numero = 7
@@ -388,28 +647,27 @@ class GraficaGeneralOro(GraficaGeneral):
     def __init__(self):
         
         '''
-        Crea la instancia de Gráfica para baneo sin ningún tipo de filtro.
+        Crea la instancia de Gráfica para la base de datos que contiene 
+        el crecimiento de oro durante las partidas.
         '''
         super().__init__()
     
     def etiqueta_oro(self, columnas, tipo):
         
         '''
-        etiqueta_oro(columnas, tipo)
+        Lee las columnas de un DataFrame y selecciona un filtro según el 
+        tipo.
+        La columna Time_gold debe ser incluida
+        
+        Parámetros:
+            columnas: Columnas de un DataFrame que contengan la columna
+            "Time_gold".
             
-            Lee las columnas de un DataFrame y selecciona un filtro según el 
-            tipo.
-            La columna Time_gold debe ser incluida
+            tipo: str, realiza un filtro para las columnas que contengan
+            el tipo.
             
-            Parámetros:
-                columnas: Columnas de un DataFrame que contengan la columna
-                "Time_gold".
-                
-                tipo: str, realiza un filtro para las columnas que contengan
-                el tipo.
-                
-            Return:
-                Las columnas que validen el filtro. 
+        Return:
+            Las columnas que validen el filtro. 
         '''
         
         return columnas[columnas.str.contains(tipo + '|Time_gold')]
@@ -417,24 +675,22 @@ class GraficaGeneralOro(GraficaGeneral):
     def grafico_oro_vs_tiempo(self, oro, filtro = None, indice = 10):
         
         '''
-        grafico_oro_vs_tiempo(oro, filtro = None, indice = 10)
+        Toma el DataFrame y realiza un gráfico según la serie de tiempo.
+        
+        Parámetros:
+            oro: DataFrame, debe contener la columna 'Time_gold' y en lo
+            posible las columnas sean numéricas.
             
-            Toma el DataFrame y realiza un gráfico según la serie de tiempo.
+            filtro: None o lista, Indica la separacion de columnas, según
+            el filtro realizado, por defecto es None, es decir todas las 
+            columnas se calculan de manera individual.
             
-            Parámetros:
-                oro: DataFrame, debe contener la columna 'Time_gold' y en lo
-                posible las columnas sean numéricas.
-                
-                filtro: None o lista, Indica la separacion de columnas, según
-                el filtro realizado, por defecto es None, es decir todas las 
-                columnas se calculan de manera individual.
-                
-                indice: Opcional, escalar. Si el gráfico realiza dos lineas,
-                se puede incluir la diferencia monetaria, por defecto es 10.
-                
-            Return:
-                Gráfico lineal en relación al crecimiento del dinero durante la
-                partida. 
+            indice: Opcional, escalar. Si el gráfico realiza dos lineas,
+            se puede incluir la diferencia monetaria, por defecto es 10.
+            
+        Return:
+            Gráfico lineal en relación al crecimiento del dinero durante la
+            partida. 
         
         '''
         
@@ -448,8 +704,6 @@ class GraficaGeneralOro(GraficaGeneral):
         def etiqueta_diferencia_oro(diferencia, indice = 10):
             
             '''
-            etiqueta_diferencia_oro(diferencia, indice = 10)
-            
             Toma el DataFrame y entrega las etiquetas según la diferencia
             del DataFrame.
             
@@ -504,27 +758,25 @@ class GraficaGeneralOro(GraficaGeneral):
     def diferencia_oro(self, oro, filtro, columnas):
         
         '''
-        diferencia_oro(oro, filtro, columnas)
+        Toma el DataFrame y entrega las etiquetas según la diferencia
+        del DataFrame.
+        
+        Parámetros:
+            oro: DataFrame, debe contener la columna 'Time_gold' y en lo
+            posible las columnas sean numéricas.
             
-            Toma el DataFrame y entrega las etiquetas según la diferencia
-            del DataFrame.
+            filtro: None o lista, Indica la separacion de columnas, según
+            el filtro realizado, es decir, bajo que criterio desea en que
+            se vea la diferencia, por equipo?, por posición?, 
+            por defecto es None, es decir, todas las columnas se calculan 
+            de manera individual.
             
-            Parámetros:
-                oro: DataFrame, debe contener la columna 'Time_gold' y en lo
-                posible las columnas sean numéricas.
-                
-                filtro: None o lista, Indica la separacion de columnas, según
-                el filtro realizado, es decir, bajo que criterio desea en que
-                se vea la diferencia, por equipo?, por posición?, 
-                por defecto es None, es decir, todas las columnas se calculan 
-                de manera individual.
-                
-                columnas: Columnas de un DataFrame.
-                
-            Return:
-                Retorna la diferencia entre columnas organizadas, la primera
-                columna suma y el resto de columnas restan el valor de la 
-                inicial.
+            columnas: Columnas de un DataFrame.
+            
+        Return:
+            Retorna la diferencia entre columnas organizadas, la primera
+            columna suma y el resto de columnas restan el valor de la 
+            inicial.
         '''
         
         GGO = GraficaGeneralOro()
@@ -546,8 +798,6 @@ class GraficaGeneralOro(GraficaGeneral):
     def relacion_filtro(self, oro, filtro, indice = 10):
         
         '''
-        relacion_filtro(oro, filtro, paleta = 'Spectral', indice = 10)
-        
         Parámetros:
             oro: DataFrame, columnas numéricas, debe contener la columna
             Time_gold.
@@ -595,8 +845,6 @@ class GraficaGeneralOro(GraficaGeneral):
     def grafico_barra_apilado_oro(self, relacion):
         
         '''
-        grafico_barra_apilado_oro(relacion)
-        
         Parámetros:
             relacion: DataFrame, contiene la relación de las columnas,
             según el filtrado especificado.
@@ -615,12 +863,13 @@ class GraficaGeneralOro(GraficaGeneral):
         plt.ylabel('Gold')
         plt.show()
 
-class GraficaGeneralMuertes(GraficaGeneral):
+class GraficaGeneralMuerte(GraficaGeneral):
     
     def __init__(self):
         
         '''
-        Crea la instancia de Gráfica para baneo sin ningún tipo de filtro.
+        Crea la instancia de Gráfica para la base de datos que contiene 
+        eliminación de personajes.
         '''
         super().__init__()
         
@@ -629,9 +878,6 @@ class GraficaGeneralMuertes(GraficaGeneral):
                        color_invertido = True, tiempo_ordenado = True, a = 0.5):
         
         '''
-        grafico_puntos(muertes, paleta = 'magma', color_invertido = True, 
-        tiempo_ordenado = True)
-        
         Parámetros:
             muertes: DataFrame, contiene las muertes realizadas en el juego.
             
@@ -660,7 +906,7 @@ class GraficaGeneralMuertes(GraficaGeneral):
             Gráfico de puntos para la ubicación de las muertes durante la
             partida.
         '''
-        GGM = GraficaGeneralMuertes()
+        GGM = GraficaGeneralMuerte()
         muertes = muertes.drop_duplicates(['Address', 'x_pos', 'y_pos'])
             
         if tiempo_ordenado == True:
@@ -695,10 +941,6 @@ class GraficaGeneralMuertes(GraficaGeneral):
                                 a = 0.07):
         
         '''
-        grafico_puntos_filtrado(muertes, paleta = ['Reds','Blues'], 
-        columna = 'Team_kill', color_invertido = True, tiempo_ordenado = True,
-        a = 0.07)
-        
         Parámetros:
             muertes: DataFrame, contiene las muertes realizadas en el juego.
             
@@ -730,7 +972,7 @@ class GraficaGeneralMuertes(GraficaGeneral):
             partida.
         '''
         
-        GGM = GraficaGeneralMuertes()
+        GGM = GraficaGeneralMuerte()
         
         if columna == None:
             GGM.grafico_puntos(muertes = muertes, 
@@ -751,19 +993,24 @@ class GraficaGeneralMuertes(GraficaGeneral):
                 
             plt.show()
 
-class GraficaGeneralMonstruos(GraficaGeneral):
+class GraficaGeneralMonstruo(GraficaGeneral):
     
     def __init__(self):
         
         '''
-        Crea la instancia de Gráfica para baneo sin ningún tipo de filtro.
+        Crea la instancia de Gráfica para la base de datos que contiene 
+        eliminación de monstruos.
+        '''
+        super().__init__()
+
+        
+class GraficaGeneralEstructura(GraficaGeneral):
+    
+    def __init__(self):
+        
+        '''
+        Crea la instancia de Gráfica para la base de datos que contiene 
+        eliminación de monstruos.
         '''
         super().__init__()
         
-    def grafico_cajas(self, monstruo):
-        pass
-
-
-
-
-   
