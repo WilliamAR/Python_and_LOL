@@ -271,7 +271,7 @@ ax.set_ylabel('score train')
 ax.set_title('Train vs Test, through time')
 ax.figure.colorbar(
     scatter,
-    label='100*log(elapsed time/number process)')
+    label='200*log(elapsed time/number process + 1)')
 ax.grid(True, alpha = 0.5)
 for label, test,train in zip(
         labels, my_models['score_test'],my_models['score_train']):
