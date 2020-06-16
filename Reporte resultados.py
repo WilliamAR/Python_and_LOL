@@ -5,11 +5,15 @@ from Graficas_generales import (GraficaGeneralBaneo, GraficaGeneralOro,
                                 GraficaGeneralEstructura)
 from Save_Images import AlmacenarImagen
 
+
+
+#Lectura base de datos
 l = OrganizarBase()
 a,b,c,d,e,f = l.arreglar_base()
 
 
 
+#Graficación de informes
 x = GraficaGeneralBaneo()
 
 nombres_campeones = x.nombres(
@@ -109,6 +113,7 @@ w.grafico_barras_frecuencias(
 
 
 
+#Web scrapping
 v = GraficaGeneralEstructura()
 
 f = f.loc[~(pd.isna(f.Lane) | pd.isna(f.Type_structure))]
