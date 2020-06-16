@@ -1,4 +1,5 @@
 import pandas as pd
+import os
 
 class OrganizarBase(object):
     
@@ -10,6 +11,8 @@ class OrganizarBase(object):
         Las bases contienen: 
             Baneos, Oro, Asesinatos, Información de la partida, Monstruos y
             estructuras.
+        
+        Nota: Las bases dedeben estar contenidas en una carpeta llamada "data"
             
         Carga todas las bases suministradas de Kaggle del siguiente
             enlace https://www.kaggle.com/chuckephron/leagueoflegends/metadata 
@@ -24,7 +27,7 @@ class OrganizarBase(object):
             Base de datos que contiene el baneo durante las partidas.
         '''
         
-        lol_bans = pd.read_csv('bans.csv')
+        lol_bans = pd.read_csv(os.path.join('data','bans.csv'))
         
         return lol_bans
     
@@ -35,7 +38,7 @@ class OrganizarBase(object):
             Base de datos que contiene el oro durante las partidas.
         '''
         
-        lol_gold = pd.read_csv('gold.csv')
+        lol_gold = pd.read_csv(os.path.join('data','gold.csv'))
         
         return lol_gold
     
@@ -46,7 +49,7 @@ class OrganizarBase(object):
             Base de datos que contiene las muertes durante las partidas.
         '''
         
-        lol_kills = pd.read_csv('kills.csv')
+        lol_kills = pd.read_csv(os.path.join('data','kills.csv'))
         
         return lol_kills
     
@@ -58,7 +61,7 @@ class OrganizarBase(object):
             partidas.
         '''
         
-        lol_match_info = pd.read_csv('matchinfo.csv')
+        lol_match_info = pd.read_csv(os.path.join('data','matchinfo.csv'))
         
         return lol_match_info
     
@@ -70,7 +73,7 @@ class OrganizarBase(object):
             las partidas.
         '''
         
-        lol_monsters = pd.read_csv('monsters.csv')
+        lol_monsters = pd.read_csv(os.path.join('data','monsters.csv'))
         
         return lol_monsters
     
@@ -82,7 +85,7 @@ class OrganizarBase(object):
             las partidas.
         '''
         
-        lol_structures = pd.read_csv('structures.csv')
+        lol_structures = pd.read_csv(os.path.join('data','structures.csv'))
         
         return lol_structures
     
